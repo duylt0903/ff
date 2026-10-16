@@ -51,17 +51,25 @@
                         <h1 class="text-base sm:text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400">
                             Quỹ Gia Đình
                         </h1>
-                        <p class="text-[10px] text-slate-400">Hệ thống quản lý tài sản tự động</p>
+                        <p class="text-[10px] text-slate-400 flex items-center gap-1">
+                            <span id="syncStatus" class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span id="syncText">Đã đồng bộ đám mây</span>
+                            <span id="roleBadge" class="ml-2 px-1.5 py-0.2 bg-slate-800 text-slate-400 rounded text-[9px] font-bold border border-slate-700">👁️ Chỉ xem</span>
+                        </p>
                     </div>
                 </div>
                 
-                <!-- Mobile Quick Add Button -->
-                <button onclick="openModal()" class="sm:hidden flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium text-xs rounded-xl shadow">
-                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> Thêm
-                </button>
+                <div class="flex items-center gap-1.5 sm:hidden">
+                    <button onclick="toggleAdminMode()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-xl border border-slate-700 flex items-center gap-1">
+                        <i data-lucide="lock" class="w-3.5 h-3.5 text-amber-400" id="mobileLockIcon"></i>
+                    </button>
+                    <button onclick="openModal()" id="mobileAddBtn" class="hidden flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium text-xs rounded-xl shadow">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i> Thêm
+                    </button>
+                </div>
             </div>
 
-            <!-- Actions & Gold Rate -->
+            <!-- Actions & Gold Rate & Admin Auth -->
             <div class="flex flex-wrap items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
                 <div class="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1.5 rounded-xl border border-amber-500/30">
                     <i data-lucide="coins" class="w-3.5 h-3.5 text-amber-400"></i>
@@ -71,16 +79,22 @@
                 </div>
 
                 <div class="flex items-center gap-1.5">
-                    <button onclick="openModal()" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-xl shadow">
+                    <button onclick="toggleAdminMode()" id="desktopLockBtn" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-xl border border-slate-700 flex items-center gap-1.5 transition">
+                        <i data-lucide="lock" class="w-3.5 h-3.5 text-amber-400" id="desktopLockIcon"></i>
+                        <span id="desktopLockText">Mở khóa Admin</span>
+                    </button>
+
+                    <button onclick="fetchFromCloud()" class="p-2 text-indigo-400 bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 transition" title="Làm mới dữ liệu">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    </button>
+
+                    <button onclick="openModal()" id="desktopAddBtn" class="hidden flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-xl shadow">
                         <i data-lucide="plus" class="w-3.5 h-3.5"></i> Thêm GD
                     </button>
+
                     <button onclick="exportData()" class="p-2 text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 transition" title="Xuất dữ liệu">
                         <i data-lucide="download" class="w-4 h-4"></i>
                     </button>
-                    <label class="p-2 text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 cursor-pointer transition" title="Nhập dữ liệu">
-                        <i data-lucide="upload" class="w-4 h-4"></i>
-                        <input type="file" id="importFile" onchange="importData(event)" class="hidden" accept=".json">
-                    </label>
                 </div>
             </div>
         </div>
@@ -106,18 +120,15 @@
 
         <!-- OVERVIEW TOP STATS -->
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-            
-            <!-- 1. Total Assets -->
             <div class="glass-card rounded-2xl p-4 transition duration-300 col-span-2 md:col-span-1">
                 <div class="flex justify-between items-start mb-2">
                     <span class="text-[10px] sm:text-xs font-semibold text-slate-400 tracking-wider uppercase">TỔNG TÀI SẢN</span>
                     <div class="p-1.5 bg-indigo-500/10 text-indigo-400 rounded-lg"><i data-lucide="coins" class="w-4 h-4"></i></div>
                 </div>
                 <div class="text-xl sm:text-2xl font-bold text-white tracking-tight truncate" id="statTotalAssets">0 đ</div>
-                <p class="text-[10px] text-slate-400 mt-1">Cập nhật tự động thời gian thực</p>
+                <p class="text-[10px] text-slate-400 mt-1">Cập nhật tự động đám mây</p>
             </div>
 
-            <!-- 2. Cash -->
             <div class="glass-card rounded-2xl p-4 transition duration-300">
                 <div class="flex justify-between items-start mb-2">
                     <span class="text-[10px] sm:text-xs font-semibold text-slate-400 tracking-wider uppercase">TIỀN MẶT</span>
@@ -127,7 +138,6 @@
                 <p class="text-[10px] text-slate-400 mt-1">Sẵn sàng chi tiêu</p>
             </div>
 
-            <!-- 3. Gold -->
             <div class="glass-card rounded-2xl p-4 transition duration-300">
                 <div class="flex justify-between items-start mb-2">
                     <span class="text-[10px] sm:text-xs font-semibold text-slate-400 tracking-wider uppercase">VÀNG TÍCH TRỮ</span>
@@ -137,19 +147,15 @@
                 <div class="text-[10px] text-amber-400/80 font-medium truncate mt-1" id="statGoldValue">~ 0 đ</div>
             </div>
 
-            <!-- 4. Savings -->
             <div class="glass-card rounded-2xl p-4 transition duration-300">
                 <div class="flex justify-between items-start mb-2">
                     <span class="text-[10px] sm:text-xs font-semibold text-slate-400 tracking-wider uppercase">TIẾT KIỆM</span>
                     <div class="p-1.5 bg-blue-500/10 text-blue-400 rounded-lg"><i data-lucide="piggy-bank" class="w-4 h-4"></i></div>
                 </div>
                 <div class="text-lg sm:text-xl font-bold text-blue-300 tracking-tight truncate" id="statSavings">0 đ</div>
-                <div class="text-[10px] text-emerald-400 font-medium mt-1 truncate" id="statSavingsInterest">
-                    Lãi: +0 đ
-                </div>
+                <div class="text-[10px] text-emerald-400 font-medium mt-1 truncate" id="statSavingsInterest">Lãi: +0 đ</div>
             </div>
 
-            <!-- 5. Receivables (Loans) -->
             <div class="glass-card rounded-2xl p-4 transition duration-300 col-span-2 md:col-span-1">
                 <div class="flex justify-between items-start mb-1">
                     <span class="text-[10px] sm:text-xs font-semibold text-slate-400 tracking-wider uppercase">CHO MƯỢN</span>
@@ -160,13 +166,10 @@
                     <span class="text-slate-500 italic">Chưa có</span>
                 </div>
             </div>
-
         </div>
 
         <!-- ANALYTICS SECTION -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-
-            <!-- Left: Chart Doughnut -->
             <div class="lg:col-span-6 glass-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
                 <div class="flex justify-between items-center mb-3">
                     <h2 class="text-sm sm:text-base font-semibold text-white flex items-center gap-2">
@@ -231,20 +234,17 @@
 
             <!-- Right: Bar Chart & Savings Summary Widget -->
             <div class="lg:col-span-6 flex flex-col gap-4">
-                <!-- Bar Chart -->
                 <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
                     <div class="flex justify-between items-center mb-2">
                         <h2 class="text-xs sm:text-sm font-semibold text-white flex items-center gap-2">
                             <i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-400"></i> Dòng Tiền Thu Vào (6 Tháng)
                         </h2>
                     </div>
-
                     <div class="relative w-full h-32 flex items-center justify-center">
                         <canvas id="cashInBarChart"></canvas>
                     </div>
                 </div>
 
-                <!-- Savings Active Summary Widget -->
                 <div class="glass-card rounded-2xl p-4">
                     <div class="flex justify-between items-center mb-2">
                         <h3 class="text-xs font-semibold text-white flex items-center gap-2">
@@ -268,7 +268,6 @@
                     </div>
                 </div>
             </div>
-
         </div>
 
         <!-- TRANSACTION HISTORY TABLE -->
@@ -280,12 +279,11 @@
                     </h2>
                     <p class="text-[11px] text-slate-400">Theo dõi trạng thái thời gian thực</p>
                 </div>
-                <button onclick="openModal()" class="hidden sm:flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg transition">
+                <button onclick="openModal()" id="desktopAddBtn2" class="hidden flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg transition">
                     <i data-lucide="plus" class="w-3.5 h-3.5"></i> Thêm giao dịch
                 </button>
             </div>
 
-            <!-- Table -->
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs sm:text-sm text-slate-300 whitespace-nowrap sm:whitespace-normal">
                     <thead class="bg-slate-900/80 text-[10px] sm:text-xs uppercase text-slate-400 border-b border-slate-800">
@@ -295,7 +293,7 @@
                             <th class="py-2.5 px-3">Chi tiết</th>
                             <th class="py-2.5 px-3">Giá trị</th>
                             <th class="py-2.5 px-3">Ghi chú</th>
-                            <th class="py-2.5 px-3 text-right">Xóa</th>
+                            <th class="py-2.5 px-3 text-right admin-col hidden">Xóa</th>
                         </tr>
                     </thead>
                     <tbody id="txTableBody" class="divide-y divide-slate-800/60 text-xs">
@@ -310,7 +308,6 @@
     <!-- MODAL FORM WIDGET -->
     <div id="txModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm hidden p-3 overflow-y-auto">
         <div class="glass-card rounded-3xl w-full max-w-lg p-5 sm:p-7 relative border border-slate-700/60 shadow-2xl my-auto">
-            
             <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-xl bg-slate-800/50">
                 <i data-lucide="x" class="w-5 h-5"></i>
             </button>
@@ -335,9 +332,7 @@
                     </select>
                 </div>
 
-                <div id="dynamicFields" class="space-y-3 p-3 bg-slate-900/40 rounded-2xl border border-slate-800 text-xs">
-                    <!-- Dynamic Fields -->
-                </div>
+                <div id="dynamicFields" class="space-y-3 p-3 bg-slate-900/40 rounded-2xl border border-slate-800 text-xs"></div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div>
@@ -351,12 +346,8 @@
                 </div>
 
                 <div class="flex gap-3 pt-2">
-                    <button type="button" onclick="closeModal()" class="w-1/3 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium py-2 rounded-xl transition">
-                        Hủy
-                    </button>
-                    <button type="submit" id="btnSubmit" class="w-2/3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium py-2 rounded-xl text-xs transition shadow-lg shadow-indigo-600/20">
-                        Lưu giao dịch
-                    </button>
+                    <button type="button" onclick="closeModal()" class="w-1/3 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium py-2 rounded-xl transition">Hủy</button>
+                    <button type="submit" id="btnSubmit" class="w-2/3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium py-2 rounded-xl text-xs transition shadow-lg shadow-indigo-600/20">Lưu giao dịch</button>
                 </div>
             </form>
         </div>
@@ -364,15 +355,15 @@
 
     <!-- Script Logic -->
     <script>
-// CẤU HÌNH ĐÁM MÂY VÀ MẬT KHẨU ADMIN
-const JSONBIN_BIN_ID = "6ad1eab6ffd5d16053705680";
-const JSONBIN_SECRET_KEY = "$2a$10$IxCWhgMbqo9kEkkwoFa83.dg0TPCFSuhUZw.BkMBRgp2wA3CtqAHi";
-const ADMIN_PASSWORD = "123456"; // Đổi lại mật khẩu gia đình bạn muốn tại đây
-        let transactions = JSON.parse(localStorage.getItem('family_fund_txs')) || [
-            { id: 1, type: 'DONG_GOP', amount: 50000000, date: '2026-03-01', note: 'Góp quỹ' },
-            { id: 2, type: 'TIET_KIEM', amount: 10000000, rate: 6.0, term: 6, date: '2026-03-15', note: 'Sổ tiết kiệm 6 tháng', intent: 'ROLLOVER' }
-        ];
+        // ==========================================
+        // HÃY ĐIỀN THÔNG TIN CỦA BẠN VÀO 2 DÒNG DƯỚI ĐÂY:
+        // ==========================================
+        const JSONBIN_BIN_ID = "6ad1eab6ffd5d16053705680";
+        const JSONBIN_SECRET_KEY = "$2a$10$IxCWhgMbqo9kEkkwoFa83.dg0TPCFSuhUZw.BkMBRgp2wA3CtqAHi";
+        const ADMIN_PASSWORD = "123456"; // Mật khẩu quản trị gia đình của bạn
 
+        let transactions = [];
+        let isAdmin = sessionStorage.getItem('family_fund_is_admin') === 'true';
         let allocationChart = null;
         let cashInBarChart = null;
         let cachedBorrowerMap = {};
@@ -383,10 +374,126 @@ const ADMIN_PASSWORD = "123456"; // Đổi lại mật khẩu gia đình bạn m
             document.getElementById('txDate').valueAsDate = new Date();
             lucide.createIcons();
             toggleFormFields();
-            updateDashboard();
+            
+            applyAdminUIMode();
+            fetchFromCloud();
         });
 
+        function toggleAdminMode() {
+            if (isAdmin) {
+                if (confirm('Bạn có muốn đăng xuất quyền Admin không?')) {
+                    isAdmin = false;
+                    sessionStorage.removeItem('family_fund_is_admin');
+                    applyAdminUIMode();
+                    updateDashboard();
+                    alert('Đã chuyển về chế độ Chỉ xem!');
+                }
+            } else {
+                let pass = prompt('Nhập mật khẩu Admin để chỉnh sửa hệ thống:');
+                if (pass === ADMIN_PASSWORD) {
+                    isAdmin = true;
+                    sessionStorage.setItem('family_fund_is_admin', 'true');
+                    applyAdminUIMode();
+                    updateDashboard();
+                    alert('Mở khóa thành công! Bạn có toàn quyền thêm/sửa/xóa.');
+                } else if (pass !== null) {
+                    alert('Sai mật khẩu!');
+                }
+            }
+        }
+
+        function applyAdminUIMode() {
+            const roleBadge = document.getElementById('roleBadge');
+            const desktopLockText = document.getElementById('desktopLockText');
+            const desktopLockIcon = document.getElementById('desktopLockIcon');
+            const mobileLockIcon = document.getElementById('mobileLockIcon');
+            
+            const desktopAddBtn = document.getElementById('desktopAddBtn');
+            const desktopAddBtn2 = document.getElementById('desktopAddBtn2');
+            const mobileAddBtn = document.getElementById('mobileAddBtn');
+
+            if (isAdmin) {
+                roleBadge.innerHTML = '👑 Admin';
+                roleBadge.className = 'ml-2 px-1.5 py-0.2 bg-emerald-500/20 text-emerald-400 rounded text-[9px] font-bold border border-emerald-500/30';
+                desktopLockText.innerText = 'Khóa Admin';
+                desktopLockIcon.setAttribute('data-lucide', 'unlock');
+                mobileLockIcon.setAttribute('data-lucide', 'unlock');
+
+                desktopAddBtn.classList.remove('hidden');
+                desktopAddBtn2.classList.remove('hidden');
+                mobileAddBtn.classList.remove('hidden');
+                document.querySelectorAll('.admin-col').forEach(el => el.classList.remove('hidden'));
+            } else {
+                roleBadge.innerHTML = '👁️ Chỉ xem';
+                roleBadge.className = 'ml-2 px-1.5 py-0.2 bg-slate-800 text-slate-400 rounded text-[9px] font-bold border border-slate-700';
+                desktopLockText.innerText = 'Mở khóa Admin';
+                desktopLockIcon.setAttribute('data-lucide', 'lock');
+                mobileLockIcon.setAttribute('data-lucide', 'lock');
+
+                desktopAddBtn.classList.add('hidden');
+                desktopAddBtn2.classList.add('hidden');
+                mobileAddBtn.classList.add('hidden');
+                document.querySelectorAll('.admin-col').forEach(el => el.classList.add('hidden'));
+            }
+            lucide.createIcons();
+        }
+
+        async function fetchFromCloud() {
+            setSyncStatus("Đang tải dữ liệu...", "bg-amber-400");
+            try {
+                const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+                    headers: { "X-Master-Key": JSONBIN_SECRET_KEY }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    transactions = Array.isArray(data.record) ? data.record : [];
+                    updateDashboard();
+                    setSyncStatus("Đã đồng bộ đám mây", "bg-emerald-400");
+                } else {
+                    setSyncStatus("Lỗi kết nối đám mây", "bg-rose-500");
+                }
+            } catch (err) {
+                setSyncStatus("Mất kết nối mạng", "bg-rose-500");
+            }
+        }
+
+        async function saveToCloud() {
+            setSyncStatus("Đang lưu đám mây...", "bg-amber-400");
+            try {
+                const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-Master-Key": JSONBIN_SECRET_KEY
+                    },
+                    body: JSON.stringify(transactions)
+                });
+                if (res.ok) {
+                    setSyncStatus("Đã đồng bộ đám mây", "bg-emerald-400");
+                } else {
+                    setSyncStatus("Lỗi lưu đám mây", "bg-rose-500");
+                }
+            } catch (err) {
+                setSyncStatus("Mất kết nối mạng", "bg-rose-500");
+            }
+        }
+
+        function setSyncStatus(text, colorClass) {
+            const statusDot = document.getElementById('syncStatus');
+            const statusText = document.getElementById('syncText');
+            if (statusDot && statusText) {
+                statusDot.className = `inline-block w-2 h-2 rounded-full ${colorClass} animate-pulse`;
+                statusText.innerText = text;
+            }
+        }
+
+        function saveAndRefresh() {
+            saveToCloud();
+            updateDashboard();
+        }
+
         function openModal() {
+            if (!isAdmin) { alert('Bạn cần nhập mật khẩu Admin để thêm giao dịch!'); return; }
             resetForm();
             document.getElementById('txModal').classList.remove('hidden');
         }
@@ -565,6 +672,7 @@ const ADMIN_PASSWORD = "123456"; // Đổi lại mật khẩu gia đình bạn m
 
         function handleFormSubmit(e) {
             e.preventDefault();
+            if (!isAdmin) { alert('Hành động bị từ chối! Bạn cần quyền Admin.'); return; }
             const type = document.getElementById('txType').value;
             const date = document.getElementById('txDate').value;
             const note = document.getElementById('txNote').value;
@@ -596,15 +704,11 @@ const ADMIN_PASSWORD = "123456"; // Đổi lại mật khẩu gia đình bạn m
         }
 
         function setSavingsIntent(id, intentVal) {
+            if (!isAdmin) { alert('Chỉ Admin mới được thay đổi dự định tiết kiệm!'); return; }
             const tx = transactions.find(t => t.id === id);
             if (!tx) return;
             tx.intent = intentVal;
             saveAndRefresh();
-        }
-
-        function saveAndRefresh() {
-            localStorage.setItem('family_fund_txs', JSON.stringify(transactions));
-            updateDashboard();
         }
 
         function resetForm() {
@@ -614,6 +718,7 @@ const ADMIN_PASSWORD = "123456"; // Đổi lại mật khẩu gia đình bạn m
         }
 
         function deleteTx(id) {
+            if (!isAdmin) { alert('Chỉ Admin mới có quyền xóa giao dịch!'); return; }
             if (confirm('Xóa giao dịch này?')) {
                 transactions = transactions.filter(t => t.id !== id);
                 saveAndRefresh();
@@ -681,7 +786,7 @@ const ADMIN_PASSWORD = "123456"; // Đổi lại mật khẩu gia đình bạn m
 
             if (modified) {
                 transactions = sortedTx;
-                localStorage.setItem('family_fund_txs', JSON.stringify(transactions));
+                saveToCloud();
             }
 
             let monthlyCashIn = {}, monthKeys = [], now = new Date();
@@ -786,12 +891,16 @@ const ADMIN_PASSWORD = "123456"; // Đổi lại mật khẩu gia đình bạn m
             list.forEach(item => {
                 const rCls = item.intent === 'ROLLOVER' ? 'bg-blue-600 text-white font-bold ring-1 ring-blue-400' : 'bg-slate-800 text-slate-400';
                 const wCls = item.intent === 'WITHDRAW' ? 'bg-emerald-600 text-white font-bold ring-1 ring-emerald-400' : 'bg-slate-800 text-slate-400';
+                
+                const actionClick = isAdmin ? `setSavingsIntent(${item.id}, 'ROLLOVER')` : `alert('Cần quyền Admin để đổi dự định!')`;
+                const actionClick2 = isAdmin ? `setSavingsIntent(${item.id}, 'WITHDRAW')` : `alert('Cần quyền Admin để đổi dự định!')`;
+
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-800/30">
                         <td class="py-1.5 px-2"><span class="font-medium text-slate-200 block">${item.note}</span><span class="text-[9px] text-slate-400">${formatDate(item.maturityDate)}</span></td>
                         <td class="py-1.5 px-2 text-blue-300 font-bold">${formatCompactVND(item.principal)}</td>
                         <td class="py-1.5 px-2">${item.daysLeft < 0 ? '<span class="text-amber-400">Đến hạn</span>' : item.daysLeft + ' ngày'}</td>
-                        <td class="py-1.5 px-2 text-right"><div class="inline-flex gap-1"><button onclick="setSavingsIntent(${item.id}, 'ROLLOVER')" class="px-1.5 py-0.5 text-[9px] rounded ${rCls}">🔄 Tái</button><button onclick="setSavingsIntent(${item.id}, 'WITHDRAW')" class="px-1.5 py-0.5 text-[9px] rounded ${wCls}">💵 Rút</button></div></td>
+                        <td class="py-1.5 px-2 text-right"><div class="inline-flex gap-1"><button onclick="${actionClick}" class="px-1.5 py-0.5 text-[9px] rounded ${rCls}">🔄 Tái</button><button onclick="${actionClick2}" class="px-1.5 py-0.5 text-[9px] rounded ${wCls}">💵 Rút</button></div></td>
                     </tr>`;
             });
         }
@@ -809,6 +918,8 @@ const ADMIN_PASSWORD = "123456"; // Đổi lại mật khẩu gia đình bạn m
                 else if (tx.type === 'THU_NO') { badge = '<span class="text-emerald-300 bg-emerald-500/10 px-1.5 py-0.5 rounded">Thu nợ</span>'; detail = tx.borrower; amt = tx.assetType === 'GOLD' ? `+${tx.qty} Chỉ` : `+${formatVND(tx.amount)}`; }
                 else if (tx.type === 'TIET_KIEM') { badge = '<span class="text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">Tiết kiệm</span>'; detail = `Lãi ${tx.rate}% (${tx.term}th)`; amt = `-${formatVND(tx.amount)}`; }
 
+                let deleteBtnHtml = isAdmin ? `<td class="py-2 px-3 text-right admin-col"><button onclick="deleteTx(${tx.id})" class="text-slate-500 hover:text-rose-400"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></td>` : '';
+
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-800/40">
                         <td class="py-2 px-3 text-slate-400">${formatDate(tx.date)}</td>
@@ -816,7 +927,7 @@ const ADMIN_PASSWORD = "123456"; // Đổi lại mật khẩu gia đình bạn m
                         <td class="py-2 px-3">${detail}</td>
                         <td class="py-2 px-3 font-semibold">${amt}</td>
                         <td class="py-2 px-3 text-slate-400 italic">${tx.note || '-'}</td>
-                        <td class="py-2 px-3 text-right"><button onclick="deleteTx(${tx.id})" class="text-slate-500 hover:text-rose-400"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></td>
+                        ${deleteBtnHtml}
                     </tr>`;
             });
         }
@@ -854,17 +965,6 @@ const ADMIN_PASSWORD = "123456"; // Đổi lại mật khẩu gia đình bạn m
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(transactions, null, 2));
             const a = document.createElement('a'); a.href = dataStr; a.download = `quy_gia_dinh_${new Date().toISOString().slice(0,10)}.json`;
             document.body.appendChild(a); a.click(); a.remove();
-        }
-        function importData(e) {
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                try {
-                    transactions = JSON.parse(evt.target.result);
-                    saveAndRefresh();
-                    alert('Khôi phục dữ liệu thành công!');
-                } catch (err) { alert('File không hợp lệ!'); }
-            };
-            reader.readAsText(e.target.files[0]);
         }
     </script>
 </body>
