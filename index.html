@@ -356,11 +356,11 @@
     <!-- Script Logic -->
     <script>
         // ==========================================
-        // HÃY ĐIỀN THÔNG TIN CỦA BẠN VÀO 2 DÒNG DƯỚI ĐÂY:
+        // ĐIỀN THÔNG TIN KẾT NỐI JSONBIN CỦA BẠN VÀO ĐÂY:
         // ==========================================
-        const JSONBIN_BIN_ID = "6ad1eab6ffd5d16053705680";
-        const JSONBIN_SECRET_KEY = "$2a$10$IxCWhgMbqo9kEkkwoFa83.dg0TPCFSuhUZw.BkMBRgp2wA3CtqAHi";
-        const ADMIN_PASSWORD = "123456"; // Mật khẩu quản trị gia đình của bạn
+        const JSONBIN_BIN_ID = "DÁN_MÃ_BIN_ID_VÀO_ĐÂY";
+        const JSONBIN_SECRET_KEY = "DÁN_MÃ_SECRET_KEY_VÀO_ĐÂY";
+        const ADMIN_PASSWORD = "123456"; // Mật khẩu quản trị gia đình
 
         let transactions = [];
         let isAdmin = sessionStorage.getItem('family_fund_is_admin') === 'true';
@@ -806,8 +806,9 @@
                     const bName = tx.borrower ? tx.borrower.trim() : 'Khác';
                     if (!borrowerMap[bName]) borrowerMap[bName] = { cash: 0, gold: 0 };
                     if (tx.assetType === 'GOLD') {
-                        goldQty += (parseFloat(tx.qty) || 0);
-                        borrowerMap[bName].gold = Math.max(0, borrowerMap[bName].gold - (parseFloat(tx.qty) || 0));
+                        const gQty = parseFloat(tx.qty) || 0;
+                        goldQty += gQty;
+                        borrowerMap[bName].gold = Math.max(0, borrowerMap[bName].gold - gQty);
                     } else {
                         cash += amount;
                         borrowerMap[bName].cash = Math.max(0, borrowerMap[bName].cash - amount);
@@ -822,8 +823,9 @@
                     const bName = tx.borrower ? tx.borrower.trim() : 'Khác';
                     if (!borrowerMap[bName]) borrowerMap[bName] = { cash: 0, gold: 0 };
                     if (tx.assetType === 'GOLD') {
-                        goldQty -= (parseFloat(tx.qty) || 0);
-                        borrowerMap[bName].gold += (parseFloat(tx.qty) || 0);
+                        const gQty = parseFloat(tx.qty) || 0;
+                        goldQty -= gQty;
+                        borrowerMap[bName].gold += gQty;
                     } else {
                         cash -= amount;
                         borrowerMap[bName].cash += amount;
@@ -881,8 +883,18 @@
         function renderBorrowersConciseList(borrowerMap) {
             const container = document.getElementById('borrowersConciseList');
             const active = Object.keys(borrowerMap).filter(n => borrowerMap[n].cash > 0 || borrowerMap[n].gold > 0);
-            if (active.length === 0) { container.innerHTML = `<span class="text-slate-500 italic">Chưa có</span>`; return; }
-            container.innerHTML = active.map(n => `<div class="flex justify-between text-[11px]"><span class="truncate">${n}:</span><span class="text-purple-300 font-bold">${formatCompactVND(borrowerMap[n].cash)}</span></div>`).join('');
+            if (active.length === 0) { 
+                container.innerHTML = `<span class="text-slate-500 italic">Chưa có</span>`; 
+                return; 
+            }
+            
+            container.innerHTML = active.map(n => {
+                const b = borrowerMap[n];
+                let parts = [];
+                if (b.gold > 0) parts.push(`${b.gold.toFixed(1)} chỉ`);
+                if (b.cash > 0) parts.push(formatCompactVND(b.cash));
+                return `<div class="flex justify-between text-[11px]"><span class="truncate">${n}:</span><span class="text-purple-300 font-bold">${parts.join(' + ')}</span></div>`;
+            }).join('');
         }
 
         function renderSavingsSummaryTable(list) {
@@ -914,8 +926,16 @@
                 if (tx.type === 'DONG_GOP') { badge = '<span class="text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">Góp quỹ</span>'; amt = `+${formatVND(tx.amount)}`; }
                 else if (tx.type === 'CHI_TIEN') { badge = '<span class="text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded">Chi tiền</span>'; amt = `-${formatVND(tx.amount)}`; }
                 else if (tx.type === 'MUA_VANG') { badge = '<span class="text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">Mua vàng</span>'; detail = `${tx.qty} chỉ`; amt = `-${formatVND(tx.amount)}`; }
-                else if (tx.type === 'CHO_MUON') { badge = '<span class="text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">Cho mượn</span>'; detail = tx.borrower; amt = tx.assetType === 'GOLD' ? `${tx.qty} Chỉ` : `-${formatVND(tx.amount)}`; }
-                else if (tx.type === 'THU_NO') { badge = '<span class="text-emerald-300 bg-emerald-500/10 px-1.5 py-0.5 rounded">Thu nợ</span>'; detail = tx.borrower; amt = tx.assetType === 'GOLD' ? `+${tx.qty} Chỉ` : `+${formatVND(tx.amount)}`; }
+                else if (tx.type === 'CHO_MUON') { 
+                    badge = '<span class="text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">Cho mượn</span>'; 
+                    detail = `Cho <strong>${tx.borrower}</strong> mượn`; 
+                    amt = tx.assetType === 'GOLD' ? `<span class="text-amber-300 font-semibold">${tx.qty} Chỉ vàng</span>` : `<span class="text-purple-300 font-semibold">-${formatVND(tx.amount)}</span>`; 
+                }
+                else if (tx.type === 'THU_NO') { 
+                    badge = '<span class="text-emerald-300 bg-emerald-500/10 px-1.5 py-0.5 rounded">Thu nợ</span>'; 
+                    detail = `Thu nợ từ <strong>${tx.borrower}</strong>`; 
+                    amt = tx.assetType === 'GOLD' ? `<span class="text-amber-300 font-semibold">+${tx.qty} Chỉ vàng</span>` : `<span class="text-emerald-400 font-semibold">+${formatVND(tx.amount)}</span>`; 
+                }
                 else if (tx.type === 'TIET_KIEM') { badge = '<span class="text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">Tiết kiệm</span>'; detail = `Lãi ${tx.rate}% (${tx.term}th)`; amt = `-${formatVND(tx.amount)}`; }
 
                 let deleteBtnHtml = isAdmin ? `<td class="py-2 px-3 text-right admin-col"><button onclick="deleteTx(${tx.id})" class="text-slate-500 hover:text-rose-400"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></td>` : '';
