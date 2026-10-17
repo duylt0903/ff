@@ -102,22 +102,6 @@
 
     <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-4 space-y-4">
 
-        <!-- REAL-TIME MATURITY ALERT BANNER -->
-        <div id="maturityAlertBanner" class="hidden glass-card rounded-2xl p-3 sm:p-4 border border-amber-500/40 bg-amber-500/15 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div class="flex items-center gap-2.5">
-                <div class="p-2 bg-amber-500/20 text-amber-400 rounded-xl shrink-0">
-                    <i data-lucide="bell-ring" class="w-5 h-5 animate-bounce"></i>
-                </div>
-                <div>
-                    <h3 class="text-xs sm:text-sm font-bold text-amber-300">Nhắc nhở: Có khoản tiết kiệm đã đến hạn đáo hạn!</h3>
-                    <p class="text-[11px] text-slate-300" id="maturityAlertText">Hệ thống đã thực thi thao tác tự động theo dự định.</p>
-                </div>
-            </div>
-            <button onclick="scrollToSavings()" class="px-3 py-1.5 bg-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow shrink-0">
-                Xem lịch sử
-            </button>
-        </div>
-
         <!-- OVERVIEW TOP STATS -->
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             <div class="glass-card rounded-2xl p-4 transition duration-300 col-span-2 md:col-span-1">
@@ -248,7 +232,7 @@
                 <div class="glass-card rounded-2xl p-4">
                     <div class="flex justify-between items-center mb-2">
                         <h3 class="text-xs font-semibold text-white flex items-center gap-2">
-                            <i data-lucide="piggy-bank" class="w-4 h-4 text-blue-400"></i> Sổ Tiết Kiệm & Kế Hoạch Đến Hạn
+                            <i data-lucide="piggy-bank" class="w-4 h-4 text-blue-400"></i> Sổ Tiết Kiệm Đang Hoạt Động
                         </h3>
                     </div>
                     <div class="overflow-x-auto">
@@ -256,9 +240,9 @@
                             <thead class="bg-slate-900/60 uppercase text-slate-400 text-[9px]">
                                 <tr>
                                     <th class="py-1.5 px-2">Nội dung sổ</th>
-                                    <th class="py-1.5 px-2">Gốc</th>
-                                    <th class="py-1.5 px-2">Thời hạn</th>
-                                    <th class="py-1.5 px-2 text-right">Dự định đáo hạn</th>
+                                    <th class="py-1.5 px-2">Gốc hiện tại</th>
+                                    <th class="py-1.5 px-2">Kỳ hạn còn</th>
+                                    <th class="py-1.5 px-2 text-right">Dự định khi đáo hạn</th>
                                 </tr>
                             </thead>
                             <tbody id="savingsSummaryTableBody" class="divide-y divide-slate-800/40 text-[11px]">
@@ -293,7 +277,7 @@
                             <th class="py-2.5 px-3">Chi tiết</th>
                             <th class="py-2.5 px-3">Giá trị</th>
                             <th class="py-2.5 px-3">Ghi chú</th>
-                            <th class="py-2.5 px-3 text-right admin-col hidden">Xóa</th>
+                            <th class="py-2.5 px-3 text-right admin-col hidden">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody id="txTableBody" class="divide-y divide-slate-800/60 text-xs">
@@ -305,7 +289,7 @@
 
     </main>
 
-    <!-- MODAL FORM WIDGET -->
+    <!-- MODAL FORM WIDGET (THÊM / SỬA GIAO DỊCH) -->
     <div id="txModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm hidden p-3 overflow-y-auto">
         <div class="glass-card rounded-3xl w-full max-w-lg p-5 sm:p-7 relative border border-slate-700/60 shadow-2xl my-auto">
             <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-xl bg-slate-800/50">
@@ -314,12 +298,14 @@
 
             <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-800">
                 <div class="p-2 bg-indigo-600/20 text-indigo-400 rounded-xl">
-                    <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                    <i data-lucide="edit-3" class="w-4 h-4"></i>
                 </div>
-                <h2 class="text-base font-bold text-white">Ghi Nhận Giao Dịch Mới</h2>
+                <h2 class="text-base font-bold text-white" id="modalTitle">Ghi Nhận Giao Dịch Mới</h2>
             </div>
 
             <form id="txForm" onsubmit="handleFormSubmit(event)" class="space-y-3.5">
+                <input type="hidden" id="editingTxId" value="">
+
                 <div>
                     <label class="block text-xs font-semibold text-indigo-300 mb-1">Loại danh mục quỹ</label>
                     <select id="txType" onchange="toggleFormFields()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-indigo-500">
@@ -358,8 +344,8 @@
         // ==========================================
         // ĐIỀN THÔNG TIN KẾT NỐI JSONBIN CỦA BẠN VÀO ĐÂY:
         // ==========================================
-        const JSONBIN_BIN_ID = "6ad1eab6ffd5d16053705680";
-        const JSONBIN_SECRET_KEY = "$2a$10$IxCWhgMbqo9kEkkwoFa83.dg0TPCFSuhUZw.BkMBRgp2wA3CtqAHi";
+        const JSONBIN_BIN_ID = "DÁN_MÃ_BIN_ID_VÀO_ĐÂY";
+        const JSONBIN_SECRET_KEY = "DÁN_MÃ_SECRET_KEY_VÀO_ĐÂY";
         const ADMIN_PASSWORD = "123456"; // Mật khẩu quản trị gia đình
 
         let transactions = [];
@@ -492,18 +478,58 @@
             updateDashboard();
         }
 
-        function openModal() {
-            if (!isAdmin) { alert('Bạn cần nhập mật khẩu Admin để thêm giao dịch!'); return; }
+        function openModal(editId = null) {
+            if (!isAdmin) { alert('Bạn cần nhập mật khẩu Admin để thực hiện!'); return; }
             resetForm();
+            
+            if (editId) {
+                const tx = transactions.find(t => t.id === editId);
+                if (tx) {
+                    document.getElementById('modalTitle').innerText = "Chỉnh Sửa Giao Dịch";
+                    document.getElementById('editingTxId').value = tx.id;
+                    document.getElementById('txType').value = tx.type;
+                    document.getElementById('txDate').value = tx.date;
+                    document.getElementById('txNote').value = tx.note || '';
+                    
+                    toggleFormFields();
+
+                    if (tx.amount && document.getElementById('fieldAmountInput')) {
+                        document.getElementById('fieldAmountInput').value = formatNumberWithCommas(tx.amount);
+                    }
+                    if (tx.qty && document.getElementById('fieldQty')) {
+                        document.getElementById('fieldQty').value = tx.qty;
+                    }
+                    if (tx.unitPrice && document.getElementById('fieldUnitPriceInput')) {
+                        document.getElementById('fieldUnitPriceInput').value = formatNumberWithCommas(tx.unitPrice);
+                    }
+                    if (tx.borrower && document.getElementById('fieldBorrower')) {
+                        document.getElementById('fieldBorrower').value = tx.borrower;
+                    }
+                    if (tx.assetType && document.getElementById('fieldAssetType')) {
+                        document.getElementById('fieldAssetType').value = tx.assetType;
+                        if (tx.type === 'CHO_MUON') toggleLoanAssetType();
+                        if (tx.type === 'THU_NO') toggleRecoveryAssetFields();
+                    }
+                    if (tx.rate && document.getElementById('fieldRate')) {
+                        document.getElementById('fieldRate').value = tx.rate;
+                    }
+                    if (tx.term && document.getElementById('fieldTerm')) {
+                        document.getElementById('fieldTerm').value = tx.term;
+                    }
+                    if (tx.intent && document.getElementById('fieldIntent')) {
+                        document.getElementById('fieldIntent').value = tx.intent;
+                    }
+                }
+            } else {
+                document.getElementById('modalTitle').innerText = "Ghi Nhận Giao Dịch Mới";
+            }
+
             document.getElementById('txModal').classList.remove('hidden');
         }
 
         function closeModal() {
             document.getElementById('txModal').classList.add('hidden');
-        }
-
-        function scrollToSavings() {
-            document.getElementById('historyTableSection').scrollIntoView({ behavior: 'smooth' });
+            resetForm();
         }
 
         function formatNumberInput(input) {
@@ -547,11 +573,9 @@
 
                 container.innerHTML = `
                     <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Chọn người trả nợ</label>
-                        <select id="fieldBorrower" onchange="autoFillRecoveryDetails()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
-                            <option value="">-- Chọn người nợ --</option>
-                            ${optionsHtml}
-                        </select>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Chọn người trả nợ / Người nợ</label>
+                        <input type="text" id="fieldBorrower" list="borrowerDatalist" placeholder="Tên người trả..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                        <datalist id="borrowerDatalist">${optionsHtml}</datalist>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-300 mb-1">Loại tài sản</label>
@@ -612,7 +636,7 @@
                 container.innerHTML = `
                     <div>
                         <label class="block text-xs font-semibold text-slate-300 mb-1">Số tiền gửi (VNĐ)</label>
-                        <input type="text" id="fieldAmountInput" oninput="formatNumberInput(this)" required placeholder="0" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-bold">
+                        <input type="text" id="fieldAmountInput" oninput="formatNumberInput(this)" required placeholder="0" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-bold">
                     </div>
                     <div class="grid grid-cols-2 gap-2">
                         <div>
@@ -628,25 +652,10 @@
                         <label class="block text-xs font-semibold text-slate-300 mb-1">Dự định khi đến hạn</label>
                         <select id="fieldIntent" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
                             <option value="ROLLOVER">🔄 Tự động Tái tục (Lãi nhập gốc)</option>
-                            <option value="WITHDRAW">💵 Rút tiền (Về Tiền mặt)</option>
+                            <option value="WITHDRAW">💵 Rút tiền (Cộng Lãi + Gốc về Tiền mặt)</option>
                         </select>
                     </div>
                 `;
-            }
-        }
-
-        function autoFillRecoveryDetails() {
-            const borrower = document.getElementById('fieldBorrower').value;
-            const assetSelect = document.getElementById('fieldAssetType');
-            if (!borrower || !cachedBorrowerMap[borrower]) return;
-            const info = cachedBorrowerMap[borrower];
-            assetSelect.value = (info.gold > 0 && info.cash === 0) ? 'GOLD' : 'CASH';
-            toggleRecoveryAssetFields();
-            if (document.getElementById('fieldAmountInput') && info.cash > 0) {
-                document.getElementById('fieldAmountInput').value = Number(info.cash).toLocaleString('en-US');
-            }
-            if (document.getElementById('fieldQty') && info.gold > 0) {
-                document.getElementById('fieldQty').value = info.gold;
             }
         }
 
@@ -673,11 +682,19 @@
         function handleFormSubmit(e) {
             e.preventDefault();
             if (!isAdmin) { alert('Hành động bị từ chối! Bạn cần quyền Admin.'); return; }
+            
+            const editingId = document.getElementById('editingTxId').value;
             const type = document.getElementById('txType').value;
             const date = document.getElementById('txDate').value;
             const note = document.getElementById('txNote').value;
 
-            let txData = { id: Date.now(), type, date, note };
+            let txData = { 
+                id: editingId ? parseFloat(editingId) : Date.now(), 
+                type, 
+                date, 
+                note 
+            };
+
             const amountVal = getCleanNumber('fieldAmountInput');
             if (amountVal > 0) txData.amount = amountVal;
 
@@ -697,10 +714,15 @@
                 txData.intent = document.getElementById('fieldIntent').value || 'ROLLOVER';
             }
 
-            transactions.unshift(txData);
+            if (editingId) {
+                const idx = transactions.findIndex(t => t.id == editingId);
+                if (idx !== -1) transactions[idx] = txData;
+            } else {
+                transactions.unshift(txData);
+            }
+
             saveAndRefresh();
             closeModal();
-            resetForm();
         }
 
         function setSavingsIntent(id, intentVal) {
@@ -713,54 +735,63 @@
 
         function resetForm() {
             document.getElementById('txForm').reset();
+            document.getElementById('editingTxId').value = '';
             document.getElementById('txDate').valueAsDate = new Date();
             toggleFormFields();
         }
 
         function deleteTx(id) {
             if (!isAdmin) { alert('Chỉ Admin mới có quyền xóa giao dịch!'); return; }
-            if (confirm('Xóa giao dịch này?')) {
+            if (confirm('Bạn có chắc chắn muốn xóa giao dịch này?')) {
                 transactions = transactions.filter(t => t.id !== id);
                 saveAndRefresh();
             }
         }
 
-        function getSavingsActiveStateWithIntent(tx, today, allTransactionsRef) {
+        // TÍNH TOÁN TIẾT KIỆM ĐẾN HẠN TỰ ĐỘNG
+        function getSavingsActiveStateWithIntent(tx, today) {
             let principal = parseFloat(tx.amount) || 0;
             let rate = parseFloat(tx.rate) || 0;
             let term = parseInt(tx.term) || 0;
             let startDate = new Date(tx.date);
             let intent = tx.intent || 'ROLLOVER';
 
-            if (term <= 0) return { principal, maturityDate: startDate, interest: 0, executed: false };
+            if (term <= 0) return { principal, maturityDate: startDate, interest: 0, isWithdrawn: false };
 
             let maturityDate = new Date(startDate);
             maturityDate.setMonth(maturityDate.getMonth() + term);
-            let executed = false;
 
+            let isWithdrawn = false;
+            let totalMaturedInterest = 0;
+
+            // Xử lý tự động chuyển kỳ hạn nếu đã vượt mốc đến hạn
             while (maturityDate <= today) {
-                let interest = Math.round(principal * (rate / 100) * (term / 12));
+                let currentInterest = Math.round(principal * (rate / 100) * (term / 12));
+                
                 if (intent === 'ROLLOVER') {
-                    principal += interest;
+                    // Tái tục: Lãi nhập gốc, chạy tiếp kỳ hạn cũ
+                    principal += currentInterest;
                     startDate = new Date(maturityDate);
                     maturityDate = new Date(startDate);
                     maturityDate.setMonth(maturityDate.getMonth() + term);
                 } else if (intent === 'WITHDRAW') {
-                    allTransactionsRef.unshift({
-                        id: Date.now() + Math.random(),
-                        type: 'DONG_GOP',
-                        amount: principal + interest,
-                        date: maturityDate.toISOString().slice(0, 10),
-                        note: `Tự động rút sổ: ${tx.note || 'Tiết kiệm'}`
-                    });
-                    executed = true;
+                    // Rút tiền: Cộng gốc + lãi về tiền mặt và ngưng hiển thị trên danh mục tiết kiệm
+                    totalMaturedInterest += currentInterest;
+                    isWithdrawn = true;
                     break;
                 }
             }
 
-            if (executed) return { principal: 0, maturityDate, interest: 0, executed: true };
-            let currentInterest = Math.round(principal * (rate / 100) * (term / 12));
-            return { principal, startDate, maturityDate, interest: currentInterest, executed: false };
+            let currentTermInterest = isWithdrawn ? 0 : Math.round(principal * (rate / 100) * (term / 12));
+
+            return {
+                principal: principal,
+                startDate: startDate,
+                maturityDate: maturityDate,
+                interest: currentTermInterest,
+                totalMaturedInterest: totalMaturedInterest,
+                isWithdrawn: isWithdrawn
+            };
         }
 
         function updateDashboard() {
@@ -768,26 +799,12 @@
             localStorage.setItem('family_fund_gold_rate', currentGoldRate);
 
             let cash = 0, goldQty = 0, savingsTotal = 0, savingsInterestTotal = 0;
-            let borrowerMap = {}, maturedCount = 0, activeSavingsList = [];
+            let borrowerMap = {}, activeSavingsList = [];
 
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
-            let modified = false;
             let sortedTx = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
-
-            for (let i = sortedTx.length - 1; i >= 0; i--) {
-                let tx = sortedTx[i];
-                if (tx.type === 'TIET_KIEM') {
-                    let res = getSavingsActiveStateWithIntent(tx, today, sortedTx);
-                    if (res.executed) { sortedTx.splice(i, 1); modified = true; }
-                }
-            }
-
-            if (modified) {
-                transactions = sortedTx;
-                saveToCloud();
-            }
 
             let monthlyCashIn = {}, monthKeys = [], now = new Date();
             for (let i = 5; i >= 0; i--) {
@@ -799,6 +816,7 @@
 
             sortedTx.forEach(tx => {
                 const amount = parseFloat(tx.amount) || 0;
+
                 if (tx.type === 'DONG_GOP') {
                     cash += amount;
                     if (tx.date && monthlyCashIn[tx.date.slice(0, 7)]) monthlyCashIn[tx.date.slice(0, 7)].total += amount;
@@ -831,24 +849,37 @@
                         borrowerMap[bName].cash += amount;
                     }
                 } else if (tx.type === 'TIET_KIEM') {
-                    cash -= amount;
-                    const state = getSavingsActiveStateWithIntent(tx, today, []);
-                    savingsTotal += state.principal;
-                    savingsInterestTotal += state.interest;
-                    const diffDays = Math.ceil((state.maturityDate - today) / (1000 * 60 * 60 * 24));
-                    activeSavingsList.push({ id: tx.id, note: tx.note || 'Tiết kiệm', principal: state.principal, maturityDate: state.maturityDate, daysLeft: diffDays, intent: tx.intent || 'ROLLOVER' });
-                    if (state.maturityDate <= today) maturedCount++;
+                    cash -= amount; // Ban đầu trừ tiền mặt gửi vào
+                    const state = getSavingsActiveStateWithIntent(tx, today);
+
+                    if (state.isWithdrawn) {
+                        // Đã rút khi đến hạn: Cộng cả Gốc + Lãi hoàn về Tiền mặt
+                        cash += (state.principal + state.totalMaturedInterest);
+                    } else {
+                        // Đang hoạt động / Tái tục: Tính vào tổng tài sản tiết kiệm & hiển thị trên bảng
+                        savingsTotal += state.principal;
+                        savingsInterestTotal += state.interest;
+                        const diffDays = Math.ceil((state.maturityDate - today) / (1000 * 60 * 60 * 24));
+                        activeSavingsList.push({ 
+                            id: tx.id, 
+                            note: tx.note || 'Tiết kiệm', 
+                            principal: state.principal, 
+                            maturityDate: state.maturityDate, 
+                            daysLeft: diffDays, 
+                            intent: tx.intent || 'ROLLOVER' 
+                        });
+                    }
                 }
             });
 
             cachedBorrowerMap = borrowerMap;
-            document.getElementById('maturityAlertBanner').classList.toggle('hidden', maturedCount === 0);
 
             const goldTotalValue = goldQty * currentGoldRate;
             let receivablesTotal = 0;
             Object.values(borrowerMap).forEach(b => { receivablesTotal += b.cash + (b.gold * currentGoldRate); });
             const grandTotal = cash + goldTotalValue + savingsTotal + receivablesTotal;
 
+            // DOM Updates
             document.getElementById('statTotalAssets').innerText = formatVND(grandTotal);
             document.getElementById('centerChartTotal').innerText = formatCompactVND(grandTotal);
             document.getElementById('statCash').innerText = formatVND(cash);
@@ -858,7 +889,7 @@
             document.getElementById('legendGoldVal').innerText = formatCompactVND(goldTotalValue);
             document.getElementById('statSavings').innerText = formatVND(savingsTotal);
             document.getElementById('legendSavingsVal').innerText = formatCompactVND(savingsTotal);
-            document.getElementById('statSavingsInterest').innerText = `Lãi: +${formatCompactVND(savingsInterestTotal)}`;
+            document.getElementById('statSavingsInterest').innerText = `Lãi dự kiến: +${formatCompactVND(savingsInterestTotal)}`;
             document.getElementById('statReceivables').innerText = formatVND(receivablesTotal);
             document.getElementById('legendRecVal').innerText = formatCompactVND(receivablesTotal);
 
@@ -899,7 +930,7 @@
 
         function renderSavingsSummaryTable(list) {
             const tbody = document.getElementById('savingsSummaryTableBody');
-            tbody.innerHTML = list.length === 0 ? `<tr><td colspan="4" class="py-2 text-center text-slate-500 italic">Không có sổ</td></tr>` : '';
+            tbody.innerHTML = list.length === 0 ? `<tr><td colspan="4" class="py-2 text-center text-slate-500 italic">Không có sổ tiết kiệm nào đang chạy</td></tr>` : '';
             list.forEach(item => {
                 const rCls = item.intent === 'ROLLOVER' ? 'bg-blue-600 text-white font-bold ring-1 ring-blue-400' : 'bg-slate-800 text-slate-400';
                 const wCls = item.intent === 'WITHDRAW' ? 'bg-emerald-600 text-white font-bold ring-1 ring-emerald-400' : 'bg-slate-800 text-slate-400';
@@ -909,10 +940,10 @@
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-800/30">
-                        <td class="py-1.5 px-2"><span class="font-medium text-slate-200 block">${item.note}</span><span class="text-[9px] text-slate-400">${formatDate(item.maturityDate)}</span></td>
+                        <td class="py-1.5 px-2"><span class="font-medium text-slate-200 block">${item.note}</span><span class="text-[9px] text-slate-400">Đáo hạn: ${formatDate(item.maturityDate)}</span></td>
                         <td class="py-1.5 px-2 text-blue-300 font-bold">${formatCompactVND(item.principal)}</td>
-                        <td class="py-1.5 px-2">${item.daysLeft < 0 ? '<span class="text-amber-400">Đến hạn</span>' : item.daysLeft + ' ngày'}</td>
-                        <td class="py-1.5 px-2 text-right"><div class="inline-flex gap-1"><button onclick="${actionClick}" class="px-1.5 py-0.5 text-[9px] rounded ${rCls}">🔄 Tái</button><button onclick="${actionClick2}" class="px-1.5 py-0.5 text-[9px] rounded ${wCls}">💵 Rút</button></div></td>
+                        <td class="py-1.5 px-2 text-emerald-400 font-semibold">${item.daysLeft} ngày</td>
+                        <td class="py-1.5 px-2 text-right"><div class="inline-flex gap-1"><button onclick="${actionClick}" class="px-1.5 py-0.5 text-[9px] rounded ${rCls}">🔄 Tái tục</button><button onclick="${actionClick2}" class="px-1.5 py-0.5 text-[9px] rounded ${wCls}">💵 Rút tiền</button></div></td>
                     </tr>`;
             });
         }
@@ -925,7 +956,7 @@
                 let detail = '-', amt = '';
                 if (tx.type === 'DONG_GOP') { badge = '<span class="text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">Góp quỹ</span>'; amt = `+${formatVND(tx.amount)}`; }
                 else if (tx.type === 'CHI_TIEN') { badge = '<span class="text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded">Chi tiền</span>'; amt = `-${formatVND(tx.amount)}`; }
-                else if (tx.type === 'MUA_VANG') { badge = '<span class="text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">Mua vàng</span>'; detail = `${tx.qty} chỉ`; amt = `-${formatVND(tx.amount)}`; }
+                else if (tx.type === 'MUA_VANG') { badge = '<span class="text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">Mua vàng</span>'; detail = `${tx.qty} chỉ (${formatVND(tx.unitPrice)}/chỉ)`; amt = `-${formatVND(tx.amount)}`; }
                 else if (tx.type === 'CHO_MUON') { 
                     badge = '<span class="text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">Cho mượn</span>'; 
                     detail = `Cho <strong>${tx.borrower}</strong> mượn`; 
@@ -936,9 +967,20 @@
                     detail = `Thu nợ từ <strong>${tx.borrower}</strong>`; 
                     amt = tx.assetType === 'GOLD' ? `<span class="text-amber-300 font-semibold">+${tx.qty} Chỉ vàng</span>` : `<span class="text-emerald-400 font-semibold">+${formatVND(tx.amount)}</span>`; 
                 }
-                else if (tx.type === 'TIET_KIEM') { badge = '<span class="text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">Tiết kiệm</span>'; detail = `Lãi ${tx.rate}% (${tx.term}th)`; amt = `-${formatVND(tx.amount)}`; }
+                else if (tx.type === 'TIET_KIEM') { badge = '<span class="text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">Tiết kiệm</span>'; detail = `Lãi ${tx.rate}%/năm (${tx.term} tháng)`; amt = `-${formatVND(tx.amount)}`; }
 
-                let deleteBtnHtml = isAdmin ? `<td class="py-2 px-3 text-right admin-col"><button onclick="deleteTx(${tx.id})" class="text-slate-500 hover:text-rose-400"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></td>` : '';
+                let actionBtnsHtml = isAdmin ? `
+                    <td class="py-2 px-3 text-right admin-col">
+                        <div class="inline-flex gap-1">
+                            <button onclick="openModal(${tx.id})" class="p-1 text-slate-400 hover:text-indigo-400 rounded transition" title="Sửa">
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button onclick="deleteTx(${tx.id})" class="p-1 text-slate-400 hover:text-rose-400 rounded transition" title="Xóa">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </td>
+                ` : '';
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-800/40">
@@ -947,7 +989,7 @@
                         <td class="py-2 px-3">${detail}</td>
                         <td class="py-2 px-3 font-semibold">${amt}</td>
                         <td class="py-2 px-3 text-slate-400 italic">${tx.note || '-'}</td>
-                        ${deleteBtnHtml}
+                        ${actionBtnsHtml}
                     </tr>`;
             });
         }
