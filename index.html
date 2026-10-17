@@ -123,12 +123,13 @@
             </div>
 
             <div class="glass-card rounded-2xl p-4 transition duration-300">
-                <div class="flex justify-between items-start mb-2">
+                <div class="flex justify-between items-start mb-1">
                     <span class="text-[10px] sm:text-xs font-semibold text-slate-400 tracking-wider uppercase">VÀNG TÍCH TRỮ</span>
                     <div class="p-1.5 bg-amber-500/10 text-amber-400 rounded-lg"><i data-lucide="gem" class="w-4 h-4"></i></div>
                 </div>
                 <div class="text-lg sm:text-xl font-bold text-amber-300 tracking-tight truncate" id="statGoldQty">0 Chỉ</div>
-                <div class="text-[10px] text-amber-400/80 font-medium truncate mt-1" id="statGoldValue">~ 0 đ</div>
+                <div class="text-[10px] text-amber-400/80 font-medium truncate mt-0.5" id="statGoldValue">~ 0 đ</div>
+                <div class="text-[10px] text-slate-400 font-medium truncate mt-0.5" id="statAvgGoldCost">TB mua: 0 đ/chỉ</div>
             </div>
 
             <div class="glass-card rounded-2xl p-4 transition duration-300">
@@ -769,18 +770,15 @@
             let totalMaturedInterest = 0;
             let withdrawMaturityDate = new Date(maturityDate);
 
-            // Xử lý tự động chuyển kỳ hạn nếu đã vượt mốc đến hạn
             while (maturityDate <= today) {
                 let currentInterest = Math.round(principal * (rate / 100) * (term / 12));
                 
                 if (intent === 'ROLLOVER') {
-                    // Tái tục: Lãi nhập gốc, chạy tiếp kỳ hạn cũ
                     principal += currentInterest;
                     startDate = new Date(maturityDate);
                     maturityDate = new Date(startDate);
                     maturityDate.setMonth(maturityDate.getMonth() + term);
                 } else if (intent === 'WITHDRAW') {
-                    // Rút tiền: Cộng gốc + lãi về tiền mặt
                     totalMaturedInterest += currentInterest;
                     isWithdrawn = true;
                     withdrawMaturityDate = new Date(maturityDate);
@@ -805,7 +803,7 @@
             const currentGoldRate = getCleanNumber('currentGoldRate') || 8500000;
             localStorage.setItem('family_fund_gold_rate', currentGoldRate);
 
-            let cash = 0, goldQty = 0, savingsTotal = 0, savingsInterestTotal = 0;
+            let cash = 0, goldQty = 0, totalGoldCost = 0, savingsTotal = 0, savingsInterestTotal = 0;
             let borrowerMap = {}, activeSavingsList = [];
 
             const today = new Date();
@@ -821,7 +819,6 @@
                 monthKeys.push(mKey);
             }
 
-            // Mảng chứa các giao dịch sinh ra từ việc tự động rút sổ tiết kiệm khi đến hạn
             let generatedWithdrawTxList = [];
 
             sortedTx.forEach(tx => {
@@ -839,6 +836,8 @@
                     if (tx.assetType === 'GOLD') {
                         const gQty = parseFloat(tx.qty) || 0;
                         goldQty += gQty;
+                        // Giảm trừ vốn vàng mua tương ứng khi thu hồi nợ vàng bình quân
+                        if (goldQty > 0) totalGoldCost -= (gQty * (totalGoldCost / (goldQty + gQty)));
                         borrowerMap[bName].gold = Math.max(0, borrowerMap[bName].gold - gQty);
                     } else {
                         cash += amount;
@@ -849,32 +848,34 @@
                     cash -= amount;
                 } else if (tx.type === 'MUA_VANG') {
                     cash -= amount;
-                    goldQty += (parseFloat(tx.qty) || 0);
+                    const gQty = parseFloat(tx.qty) || 0;
+                    goldQty += gQty;
+                    totalGoldCost += amount; // Cộng tổng tiền mua vàng thực tế
                 } else if (tx.type === 'CHO_MUON') {
                     const bName = tx.borrower ? tx.borrower.trim() : 'Khác';
                     if (!borrowerMap[bName]) borrowerMap[bName] = { cash: 0, gold: 0 };
                     if (tx.assetType === 'GOLD') {
                         const gQty = parseFloat(tx.qty) || 0;
                         goldQty -= gQty;
+                        if (goldQty > 0) totalGoldCost -= (gQty * (totalGoldCost / (goldQty + gQty)));
                         borrowerMap[bName].gold += gQty;
                     } else {
                         cash -= amount;
                         borrowerMap[bName].cash += amount;
                     }
                 } else if (tx.type === 'TIET_KIEM') {
-                    cash -= amount; // Ban đầu trừ tiền mặt gửi vào
+                    cash -= amount;
                     const state = getSavingsActiveStateWithIntent(tx, today);
 
                     if (state.isWithdrawn) {
                         const totalWithdrawAmount = state.principal + state.totalMaturedInterest;
-                        cash += totalWithdrawAmount; // Cộng gốc + lãi về Tiền mặt
+                        cash += totalWithdrawAmount;
 
                         const matDateStr = state.withdrawMaturityDate.toISOString().slice(0, 10);
                         if (monthlyCashIn[matDateStr.slice(0, 7)]) {
                             monthlyCashIn[matDateStr.slice(0, 7)].total += totalWithdrawAmount;
                         }
 
-                        // Tạo mục thể hiện trên Lịch Sử Giao Dịch
                         const noteTitle = tx.note ? tx.note.trim() : 'Tiết kiệm';
                         generatedWithdrawTxList.push({
                             id: 'auto_withdraw_' + tx.id,
@@ -886,7 +887,6 @@
                             isAuto: true
                         });
                     } else {
-                        // Đang hoạt động / Tái tục: Tính vào tổng tài sản tiết kiệm & hiển thị trên bảng
                         savingsTotal += state.principal;
                         savingsInterestTotal += state.interest;
                         const diffDays = Math.ceil((state.maturityDate - today) / (1000 * 60 * 60 * 24));
@@ -905,6 +905,8 @@
             cachedBorrowerMap = borrowerMap;
 
             const goldTotalValue = goldQty * currentGoldRate;
+            const avgGoldCost = goldQty > 0 ? Math.round(totalGoldCost / goldQty) : 0;
+
             let receivablesTotal = 0;
             Object.values(borrowerMap).forEach(b => { receivablesTotal += b.cash + (b.gold * currentGoldRate); });
             const grandTotal = cash + goldTotalValue + savingsTotal + receivablesTotal;
@@ -916,6 +918,7 @@
             document.getElementById('legendCashVal').innerText = formatCompactVND(cash);
             document.getElementById('statGoldQty').innerText = `${goldQty.toFixed(1)} Chỉ`;
             document.getElementById('statGoldValue').innerText = `~ ${formatVND(goldTotalValue)}`;
+            document.getElementById('statAvgGoldCost').innerText = `TB mua: ${formatVND(avgGoldCost)}/chỉ`;
             document.getElementById('legendGoldVal').innerText = formatCompactVND(goldTotalValue);
             document.getElementById('statSavings').innerText = formatVND(savingsTotal);
             document.getElementById('legendSavingsVal').innerText = formatCompactVND(savingsTotal);
@@ -938,7 +941,7 @@
 
             updateCharts(cash, goldTotalValue, savingsTotal, receivablesTotal, monthKeys.map(k => monthlyCashIn[k].label), monthKeys.map(k => monthlyCashIn[k].total));
             renderTable(generatedWithdrawTxList);
-            applyAdminUIMode(); // Đảm bảo cập nhật trạng thái hiển thị của các cột Admin
+            applyAdminUIMode();
             lucide.createIcons();
         }
 
