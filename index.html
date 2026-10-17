@@ -821,7 +821,7 @@
                 monthKeys.push(mKey);
             }
 
-            // Mảng chứa các giao dịch ảo sinh ra từ việc tự động rút sổ tiết kiệm khi đến hạn
+            // Mảng chứa các giao dịch sinh ra từ việc tự động rút sổ tiết kiệm khi đến hạn
             let generatedWithdrawTxList = [];
 
             sortedTx.forEach(tx => {
@@ -938,6 +938,7 @@
 
             updateCharts(cash, goldTotalValue, savingsTotal, receivablesTotal, monthKeys.map(k => monthlyCashIn[k].label), monthKeys.map(k => monthlyCashIn[k].total));
             renderTable(generatedWithdrawTxList);
+            applyAdminUIMode(); // Đảm bảo cập nhật trạng thái hiển thị của các cột Admin
             lucide.createIcons();
         }
 
@@ -1022,23 +1023,21 @@
                 }
 
                 let actionBtnsHtml = '';
-                if (isAdmin) {
-                    if (tx.isAuto) {
-                        actionBtnsHtml = `<td class="py-2 px-3 text-right admin-col text-[10px] text-slate-500 italic">Tự động</td>`;
-                    } else {
-                        actionBtnsHtml = `
-                            <td class="py-2 px-3 text-right admin-col">
-                                <div class="inline-flex gap-1">
-                                    <button onclick="openModal(${tx.id})" class="p-1 text-slate-400 hover:text-indigo-400 rounded transition" title="Sửa">
-                                        <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                                    </button>
-                                    <button onclick="deleteTx(${tx.id})" class="p-1 text-slate-400 hover:text-rose-400 rounded transition" title="Xóa">
-                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        `;
-                    }
+                if (tx.isAuto) {
+                    actionBtnsHtml = `<td class="py-2 px-3 text-right admin-col hidden text-[10px] text-slate-500 italic">Tự động</td>`;
+                } else {
+                    actionBtnsHtml = `
+                        <td class="py-2 px-3 text-right admin-col hidden">
+                            <div class="inline-flex gap-1 justify-end">
+                                <button onclick="openModal(${tx.id})" class="p-1 text-slate-400 hover:text-indigo-400 rounded transition" title="Sửa">
+                                    <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <button onclick="deleteTx(${tx.id})" class="p-1 text-slate-400 hover:text-rose-400 rounded transition" title="Xóa">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                        </td>
+                    `;
                 }
 
                 tbody.innerHTML += `
