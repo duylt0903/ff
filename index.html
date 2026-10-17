@@ -753,7 +753,7 @@
             }
         }
 
-        // TÍNH TOÁN TIẾT KIỆM ĐẾN HẠN TỰ ĐỘNG
+        // TÍNH TOÁN TIẾT KIỆM ĐẾN HẠN TỰ ĐỘNG (Sử dụng thời gian thực lúc đăng nhập)
         function getSavingsActiveStateWithIntent(tx, today) {
             let principal = parseFloat(tx.amount) || 0;
             let rate = parseFloat(tx.rate) || 0;
@@ -807,6 +807,7 @@
             let totalHistoryGoldQty = 0, totalHistoryGoldSpent = 0;
             let borrowerMap = {}, activeSavingsList = [];
 
+            // Lấy thời gian thực chính xác tại thời điểm truy cập / đăng nhập hệ thống
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
@@ -850,7 +851,7 @@
                     const gQty = parseFloat(tx.qty) || 0;
                     goldQty += gQty;
 
-                    // TÍNH ĐÚNG: Cộng dồn số lượng và tổng tiền từ lịch sử mua vàng
+                    // Tích lũy tổng số lượng và tổng tiền mua vàng lịch sử
                     totalHistoryGoldQty += gQty;
                     totalHistoryGoldSpent += (tx.amount || (gQty * (tx.unitPrice || 0)));
                 } else if (tx.type === 'CHO_MUON') {
@@ -906,7 +907,7 @@
             cachedBorrowerMap = borrowerMap;
 
             const goldTotalValue = goldQty * currentGoldRate;
-            // Tính giá vàng bình quân chính xác từ lịch sử tổng số lượng và tổng tiền mua
+            // Tính giá vàng bình quân chính xác từ tổng tiền / tổng số lượng mua trong lịch sử
             const avgGoldCost = totalHistoryGoldQty > 0 ? Math.round(totalHistoryGoldSpent / totalHistoryGoldQty) : 0;
 
             let receivablesTotal = 0;
