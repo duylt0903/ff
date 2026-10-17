@@ -315,6 +315,7 @@
                         <option value="CHO_MUON">🤝 Cho mượn (- Tiền mặt/Vàng)</option>
                         <option value="TIET_KIEM">🏦 Gửi tiết kiệm (- Tiền mặt)</option>
                         <option value="THU_NO">🔄 Thu hồi nợ (+ Tiền mặt/Vàng)</option>
+                        <option value="RUT_SO">💵 Rút sổ tiết kiệm (+ Tiền mặt)</option>
                     </select>
                 </div>
 
@@ -556,8 +557,11 @@
             const container = document.getElementById('dynamicFields');
             container.innerHTML = '';
 
-            if (type === 'DONG_GOP' || type === 'CHI_TIEN') {
-                const labelText = type === 'DONG_GOP' ? 'Số tiền đóng góp (VNĐ)' : 'Số tiền chi (VNĐ)';
+            if (type === 'DONG_GOP' || type === 'CHI_TIEN' || type === 'RUT_SO') {
+                let labelText = 'Số tiền đóng góp (VNĐ)';
+                if (type === 'CHI_TIEN') labelText = 'Số tiền chi (VNĐ)';
+                if (type === 'RUT_SO') labelText = 'Tổng số tiền rút cả gốc và lãi (VNĐ)';
+
                 container.innerHTML = `
                     <div>
                         <label class="block text-xs font-semibold text-slate-300 mb-1">${labelText}</label>
@@ -763,6 +767,7 @@
 
             let isWithdrawn = false;
             let totalMaturedInterest = 0;
+            let withdrawMaturityDate = new Date(maturityDate);
 
             // Xử lý tự động chuyển kỳ hạn nếu đã vượt mốc đến hạn
             while (maturityDate <= today) {
@@ -775,9 +780,10 @@
                     maturityDate = new Date(startDate);
                     maturityDate.setMonth(maturityDate.getMonth() + term);
                 } else if (intent === 'WITHDRAW') {
-                    // Rút tiền: Cộng gốc + lãi về tiền mặt và ngưng hiển thị trên danh mục tiết kiệm
+                    // Rút tiền: Cộng gốc + lãi về tiền mặt
                     totalMaturedInterest += currentInterest;
                     isWithdrawn = true;
+                    withdrawMaturityDate = new Date(maturityDate);
                     break;
                 }
             }
@@ -788,6 +794,7 @@
                 principal: principal,
                 startDate: startDate,
                 maturityDate: maturityDate,
+                withdrawMaturityDate: withdrawMaturityDate,
                 interest: currentTermInterest,
                 totalMaturedInterest: totalMaturedInterest,
                 isWithdrawn: isWithdrawn
@@ -814,10 +821,16 @@
                 monthKeys.push(mKey);
             }
 
+            // Mảng chứa các giao dịch ảo sinh ra từ việc tự động rút sổ tiết kiệm khi đến hạn
+            let generatedWithdrawTxList = [];
+
             sortedTx.forEach(tx => {
                 const amount = parseFloat(tx.amount) || 0;
 
                 if (tx.type === 'DONG_GOP') {
+                    cash += amount;
+                    if (tx.date && monthlyCashIn[tx.date.slice(0, 7)]) monthlyCashIn[tx.date.slice(0, 7)].total += amount;
+                } else if (tx.type === 'RUT_SO') {
                     cash += amount;
                     if (tx.date && monthlyCashIn[tx.date.slice(0, 7)]) monthlyCashIn[tx.date.slice(0, 7)].total += amount;
                 } else if (tx.type === 'THU_NO') {
@@ -853,8 +866,25 @@
                     const state = getSavingsActiveStateWithIntent(tx, today);
 
                     if (state.isWithdrawn) {
-                        // Đã rút khi đến hạn: Cộng cả Gốc + Lãi hoàn về Tiền mặt
-                        cash += (state.principal + state.totalMaturedInterest);
+                        const totalWithdrawAmount = state.principal + state.totalMaturedInterest;
+                        cash += totalWithdrawAmount; // Cộng gốc + lãi về Tiền mặt
+
+                        const matDateStr = state.withdrawMaturityDate.toISOString().slice(0, 10);
+                        if (monthlyCashIn[matDateStr.slice(0, 7)]) {
+                            monthlyCashIn[matDateStr.slice(0, 7)].total += totalWithdrawAmount;
+                        }
+
+                        // Tạo mục thể hiện trên Lịch Sử Giao Dịch
+                        const noteTitle = tx.note ? tx.note.trim() : 'Tiết kiệm';
+                        generatedWithdrawTxList.push({
+                            id: 'auto_withdraw_' + tx.id,
+                            type: 'AUTO_RUT_SO',
+                            date: matDateStr,
+                            noteName: noteTitle,
+                            amount: totalWithdrawAmount,
+                            interest: state.totalMaturedInterest,
+                            isAuto: true
+                        });
                     } else {
                         // Đang hoạt động / Tái tục: Tính vào tổng tài sản tiết kiệm & hiển thị trên bảng
                         savingsTotal += state.principal;
@@ -907,7 +937,7 @@
             document.getElementById('pctReceivables').innerText = `${pR}%`;
 
             updateCharts(cash, goldTotalValue, savingsTotal, receivablesTotal, monthKeys.map(k => monthlyCashIn[k].label), monthKeys.map(k => monthlyCashIn[k].total));
-            renderTable();
+            renderTable(generatedWithdrawTxList);
             lucide.createIcons();
         }
 
@@ -948,39 +978,68 @@
             });
         }
 
-        function renderTable() {
+        function renderTable(autoWithdrawList = []) {
             const tbody = document.getElementById('txTableBody');
             tbody.innerHTML = '';
-            [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(tx => {
+
+            let combinedTx = [...transactions, ...autoWithdrawList];
+
+            combinedTx.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(tx => {
                 let badge = '<span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800">Khác</span>';
-                let detail = '-', amt = '';
-                if (tx.type === 'DONG_GOP') { badge = '<span class="text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">Góp quỹ</span>'; amt = `+${formatVND(tx.amount)}`; }
-                else if (tx.type === 'CHI_TIEN') { badge = '<span class="text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded">Chi tiền</span>'; amt = `-${formatVND(tx.amount)}`; }
-                else if (tx.type === 'MUA_VANG') { badge = '<span class="text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">Mua vàng</span>'; detail = `${tx.qty} chỉ (${formatVND(tx.unitPrice)}/chỉ)`; amt = `-${formatVND(tx.amount)}`; }
-                else if (tx.type === 'CHO_MUON') { 
+                let detail = '-', amt = '', noteStr = tx.note || '-';
+
+                if (tx.type === 'AUTO_RUT_SO') {
+                    badge = '<span class="text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">Rút sổ</span>';
+                    detail = `Rút sổ Tiết kiệm - <strong>${tx.noteName}</strong>`;
+                    amt = `<span class="text-emerald-400 font-semibold">+${formatVND(tx.amount)}</span>`;
+                    noteStr = `Đã đáo hạn (Cộng Lãi: +${formatCompactVND(tx.interest)})`;
+                } else if (tx.type === 'RUT_SO') {
+                    badge = '<span class="text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">Rút sổ</span>';
+                    detail = `Rút sổ Tiết kiệm - <strong>${tx.note || 'Thủ công'}</strong>`;
+                    amt = `<span class="text-emerald-400 font-semibold">+${formatVND(tx.amount)}</span>`;
+                } else if (tx.type === 'DONG_GOP') { 
+                    badge = '<span class="text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">Góp quỹ</span>'; 
+                    amt = `+${formatVND(tx.amount)}`; 
+                } else if (tx.type === 'CHI_TIEN') { 
+                    badge = '<span class="text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded">Chi tiền</span>'; 
+                    amt = `-${formatVND(tx.amount)}`; 
+                } else if (tx.type === 'MUA_VANG') { 
+                    badge = '<span class="text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">Mua vàng</span>'; 
+                    detail = `${tx.qty} chỉ (${formatVND(tx.unitPrice)}/chỉ)`; 
+                    amt = `-${formatVND(tx.amount)}`; 
+                } else if (tx.type === 'CHO_MUON') { 
                     badge = '<span class="text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">Cho mượn</span>'; 
                     detail = `Cho <strong>${tx.borrower}</strong> mượn`; 
                     amt = tx.assetType === 'GOLD' ? `<span class="text-amber-300 font-semibold">${tx.qty} Chỉ vàng</span>` : `<span class="text-purple-300 font-semibold">-${formatVND(tx.amount)}</span>`; 
-                }
-                else if (tx.type === 'THU_NO') { 
+                } else if (tx.type === 'THU_NO') { 
                     badge = '<span class="text-emerald-300 bg-emerald-500/10 px-1.5 py-0.5 rounded">Thu nợ</span>'; 
                     detail = `Thu nợ từ <strong>${tx.borrower}</strong>`; 
                     amt = tx.assetType === 'GOLD' ? `<span class="text-amber-300 font-semibold">+${tx.qty} Chỉ vàng</span>` : `<span class="text-emerald-400 font-semibold">+${formatVND(tx.amount)}</span>`; 
+                } else if (tx.type === 'TIET_KIEM') { 
+                    badge = '<span class="text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">Tiết kiệm</span>'; 
+                    detail = `Lãi ${tx.rate}%/năm (${tx.term} tháng)`; 
+                    amt = `-${formatVND(tx.amount)}`; 
                 }
-                else if (tx.type === 'TIET_KIEM') { badge = '<span class="text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">Tiết kiệm</span>'; detail = `Lãi ${tx.rate}%/năm (${tx.term} tháng)`; amt = `-${formatVND(tx.amount)}`; }
 
-                let actionBtnsHtml = isAdmin ? `
-                    <td class="py-2 px-3 text-right admin-col">
-                        <div class="inline-flex gap-1">
-                            <button onclick="openModal(${tx.id})" class="p-1 text-slate-400 hover:text-indigo-400 rounded transition" title="Sửa">
-                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                            </button>
-                            <button onclick="deleteTx(${tx.id})" class="p-1 text-slate-400 hover:text-rose-400 rounded transition" title="Xóa">
-                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                            </button>
-                        </div>
-                    </td>
-                ` : '';
+                let actionBtnsHtml = '';
+                if (isAdmin) {
+                    if (tx.isAuto) {
+                        actionBtnsHtml = `<td class="py-2 px-3 text-right admin-col text-[10px] text-slate-500 italic">Tự động</td>`;
+                    } else {
+                        actionBtnsHtml = `
+                            <td class="py-2 px-3 text-right admin-col">
+                                <div class="inline-flex gap-1">
+                                    <button onclick="openModal(${tx.id})" class="p-1 text-slate-400 hover:text-indigo-400 rounded transition" title="Sửa">
+                                        <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                    <button onclick="deleteTx(${tx.id})" class="p-1 text-slate-400 hover:text-rose-400 rounded transition" title="Xóa">
+                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        `;
+                    }
+                }
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-800/40">
@@ -988,7 +1047,7 @@
                         <td class="py-2 px-3">${badge}</td>
                         <td class="py-2 px-3">${detail}</td>
                         <td class="py-2 px-3 font-semibold">${amt}</td>
-                        <td class="py-2 px-3 text-slate-400 italic">${tx.note || '-'}</td>
+                        <td class="py-2 px-3 text-slate-400 italic">${noteStr}</td>
                         ${actionBtnsHtml}
                     </tr>`;
             });
