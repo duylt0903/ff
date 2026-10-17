@@ -348,7 +348,7 @@
         // ==========================================
         const JSONBIN_BIN_ID = "6ad1eab6ffd5d16053705680";
         const JSONBIN_SECRET_KEY = "$2a$10$IxCWhgMbqo9kEkkwoFa83.dg0TPCFSuhUZw.BkMBRgp2wA3CtqAHi";
-        const ADMIN_PASSWORD = "123456"; // Mật khẩu quản trị gia đình
+        const ADMIN_PASSWORD = "090393"; // Mật khẩu quản trị gia đình
 
         let transactions = [];
         let isAdmin = sessionStorage.getItem('family_fund_is_admin') === 'true';
@@ -803,7 +803,8 @@
             const currentGoldRate = getCleanNumber('currentGoldRate') || 8500000;
             localStorage.setItem('family_fund_gold_rate', currentGoldRate);
 
-            let cash = 0, goldQty = 0, totalGoldCost = 0, savingsTotal = 0, savingsInterestTotal = 0;
+            let cash = 0, goldQty = 0, savingsTotal = 0, savingsInterestTotal = 0;
+            let totalHistoryGoldQty = 0, totalHistoryGoldSpent = 0;
             let borrowerMap = {}, activeSavingsList = [];
 
             const today = new Date();
@@ -836,8 +837,6 @@
                     if (tx.assetType === 'GOLD') {
                         const gQty = parseFloat(tx.qty) || 0;
                         goldQty += gQty;
-                        // Giảm trừ vốn vàng mua tương ứng khi thu hồi nợ vàng bình quân
-                        if (goldQty > 0) totalGoldCost -= (gQty * (totalGoldCost / (goldQty + gQty)));
                         borrowerMap[bName].gold = Math.max(0, borrowerMap[bName].gold - gQty);
                     } else {
                         cash += amount;
@@ -850,14 +849,15 @@
                     cash -= amount;
                     const gQty = parseFloat(tx.qty) || 0;
                     goldQty += gQty;
-                    totalGoldCost += amount; // Cộng tổng tiền mua vàng thực tế
+                    // Tích lũy tổng lịch sử mua vàng
+                    totalHistoryGoldQty += gQty;
+                    totalHistoryGoldSpent += amount;
                 } else if (tx.type === 'CHO_MUON') {
                     const bName = tx.borrower ? tx.borrower.trim() : 'Khác';
                     if (!borrowerMap[bName]) borrowerMap[bName] = { cash: 0, gold: 0 };
                     if (tx.assetType === 'GOLD') {
                         const gQty = parseFloat(tx.qty) || 0;
                         goldQty -= gQty;
-                        if (goldQty > 0) totalGoldCost -= (gQty * (totalGoldCost / (goldQty + gQty)));
                         borrowerMap[bName].gold += gQty;
                     } else {
                         cash -= amount;
@@ -905,7 +905,8 @@
             cachedBorrowerMap = borrowerMap;
 
             const goldTotalValue = goldQty * currentGoldRate;
-            const avgGoldCost = goldQty > 0 ? Math.round(totalGoldCost / goldQty) : 0;
+            // Tính giá vàng bình quân từ toàn bộ lịch sử mua vàng
+            const avgGoldCost = totalHistoryGoldQty > 0 ? Math.round(totalHistoryGoldSpent / totalHistoryGoldQty) : 0;
 
             let receivablesTotal = 0;
             Object.values(borrowerMap).forEach(b => { receivablesTotal += b.cash + (b.gold * currentGoldRate); });
