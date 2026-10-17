@@ -348,7 +348,7 @@
         // ==========================================
         const JSONBIN_BIN_ID = "6ad1eab6ffd5d16053705680";
         const JSONBIN_SECRET_KEY = "$2a$10$IxCWhgMbqo9kEkkwoFa83.dg0TPCFSuhUZw.BkMBRgp2wA3CtqAHi";
-        const ADMIN_PASSWORD = "090393"; // Mật khẩu quản trị gia đình
+        const ADMIN_PASSWORD = "123456"; // Mật khẩu quản trị gia đình
 
         let transactions = [];
         let isAdmin = sessionStorage.getItem('family_fund_is_admin') === 'true';
@@ -849,9 +849,10 @@
                     cash -= amount;
                     const gQty = parseFloat(tx.qty) || 0;
                     goldQty += gQty;
-                    // Tích lũy tổng lịch sử mua vàng
+
+                    // TÍNH ĐÚNG: Cộng dồn số lượng và tổng tiền từ lịch sử mua vàng
                     totalHistoryGoldQty += gQty;
-                    totalHistoryGoldSpent += amount;
+                    totalHistoryGoldSpent += (tx.amount || (gQty * (tx.unitPrice || 0)));
                 } else if (tx.type === 'CHO_MUON') {
                     const bName = tx.borrower ? tx.borrower.trim() : 'Khác';
                     if (!borrowerMap[bName]) borrowerMap[bName] = { cash: 0, gold: 0 };
@@ -905,7 +906,7 @@
             cachedBorrowerMap = borrowerMap;
 
             const goldTotalValue = goldQty * currentGoldRate;
-            // Tính giá vàng bình quân từ toàn bộ lịch sử mua vàng
+            // Tính giá vàng bình quân chính xác từ lịch sử tổng số lượng và tổng tiền mua
             const avgGoldCost = totalHistoryGoldQty > 0 ? Math.round(totalHistoryGoldSpent / totalHistoryGoldQty) : 0;
 
             let receivablesTotal = 0;
